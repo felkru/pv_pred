@@ -7,19 +7,12 @@ import wandb
 import os
 from sklearn.preprocessing import StandardScaler
 
-# --- CONFIGURATION ---
-# NOTE: Your configuration is kept as is. It looks good.
+# --- CONFIGURATION (Remains the same) ---
 CONFIG = {
     "pretrain_data_prefix": "data/transfer_learning_data/",
-    "pv_files": [
-        "PV Plants Datasets_62030198.csv",
-        "PV Plants Datasets_62032213.csv",
-    ],
-    "weather_files": [
-        "weather_files/Braga_weather.csv",
-        "weather_files/Lisbon_weather.csv",
-    ],
-    "pv_peak_power_kwp": [22_400 for _ in range(2)],
+    "pv_files": ["PV Plants Datasets_62030198.csv", "PV Plants Datasets_62032213.csv"],
+    "weather_files": ["weather_files/Braga_weather.csv", "weather_files/Lisbon_weather.csv"],
+    "pv_peak_power_kwp": [22_400, 22_400],
     "train_split": 2/3,
     "input_seq_len": 48,
     "output_seq_len": 24,
@@ -34,9 +27,7 @@ CONFIG = {
     "learning_rate": 0.0001,
 }
 
-
-# --- MODEL DEFINITION ---
-
+# --- MODEL DEFINITION (No changes needed) ---
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model: int, dropout: float = 0.1, max_len: int = 5000):
         super().__init__()
@@ -48,11 +39,9 @@ class PositionalEncoding(nn.Module):
         pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0).transpose(0, 1)
         self.register_buffer('pe', pe)
-        # FIX for linter: Explicitly declare 'pe' as a Tensor.
         self.pe: torch.Tensor
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # x is expected to be of shape [seq_len, batch_size, d_model]
         return self.dropout(x + self.pe[:x.size(0)])
 
 class PVTransformer(nn.Module):
@@ -61,45 +50,22 @@ class PVTransformer(nn.Module):
         self.d_model = d_model
         self.input_embedding = nn.Linear(num_features, d_model)
         self.pos_encoder = PositionalEncoding(d_model, dropout)
-        self.transformer = nn.Transformer(
-            d_model=d_model, nhead=nhead,
-            num_encoder_layers=num_encoder_layers, num_decoder_layers=num_decoder_layers,
-            dim_feedforward=dim_feedforward, dropout=dropout, batch_first=True
-        )
-        self.fc_out = nn.Linear(d_model, 1) # Predicts normalized PV production
+        self.transformer = nn.Transformer(d_model=d_model, nhead=nhead,
+                                          num_encoder_layers=num_encoder_layers, num_decoder_layers=num_decoder_layers,
+                                          dim_feedforward=dim_feedforward, dropout=dropout, batch_first=True)
+        self.fc_out = nn.Linear(d_model, 1)
 
     def forward(self, src: torch.Tensor, tgt: torch.Tensor) -> torch.Tensor:
-        # FIX for model logic: Correctly handle permutations for batch_first Transformer
-        # src shape: [batch, src_seq_len, features]
-        # tgt shape: [batch, tgt_seq_len, features]
-
-        # 1. Embed and scale
         src = self.input_embedding(src) * np.sqrt(self.d_model)
         tgt = self.input_embedding(tgt) * np.sqrt(self.d_model)
-
-        # 2. Permute from [batch, seq, feat] to [seq, batch, feat] for PositionalEncoding
-        src = src.permute(1, 0, 2)
-        tgt = tgt.permute(1, 0, 2)
-
-        # 3. Apply positional encoding
-        src = self.pos_encoder(src)
-        tgt = self.pos_encoder(tgt)
-
-        # 4. Permute back to [batch, seq, feat] for batch_first Transformer
-        src = src.permute(1, 0, 2)
-        tgt = tgt.permute(1, 0, 2)
-
-        # 5. Generate masks (no change needed here)
+        src = self.pos_encoder(src.permute(1, 0, 2)).permute(1, 0, 2)
+        tgt = self.pos_encoder(tgt.permute(1, 0, 2)).permute(1, 0, 2)
         src_mask = self.transformer.generate_square_subsequent_mask(src.size(1)).to(src.device)
         tgt_mask = self.transformer.generate_square_subsequent_mask(tgt.size(1)).to(tgt.device)
-
-        # 6. Pass through transformer and final layer
         output = self.transformer(src, tgt, src_mask=src_mask, tgt_mask=tgt_mask)
         return self.fc_out(output)
 
-
-# --- DATA HANDLING ---
-
+# --- DATA HANDLING (No changes needed) ---
 class TimeseriesDataset(Dataset):
     def __init__(self, features, targets):
         self.features = features
@@ -118,17 +84,22 @@ def create_sequences(data, input_len, output_len):
         ys.append(data[(i + input_len - 1) : (i + input_len + output_len - 1)])
     return np.array(xs), np.array(ys)
 
-def load_and_process_data(config):
-    all_dfs = []
+# --- REIMPLEMENTED DATA PROCESSING ---
+def load_and_process_data_per_station(config):
+    """
+    Processes data for each station separately but uses a global scaler.
+    Returns:
+        - A list of tuples, where each tuple contains (train_scaled, test_scaled, target_col_idx) for a station.
+        - The globally fitted scaler object.
+        - The feature names.
+    """
+    station_dfs = []
     for pv_file, weather_file, peak_power in zip(config["pv_files"], config["weather_files"], config["pv_peak_power_kwp"]):
         df_pv = pd.read_csv(os.path.join(config["pretrain_data_prefix"], pv_file))
-        # FIX for runtime error: Removed dayfirst=True to allow pandas to auto-detect MM/DD/YYYY format.
         df_pv['Date'] = pd.to_datetime(df_pv['Date'])
 
         if 'Specific Energy (kWh/kWp)' in df_pv.columns:
             df_pv['pv_normalized'] = df_pv['Specific Energy (kWh/kWp)']
-        elif 'Produced Energy (kWh)' in df_pv.columns:
-            df_pv['pv_normalized'] = df_pv['Produced Energy (kWh)'] / peak_power
         elif 'Power Output (Watts)' in df_pv.columns:
             df_pv['pv_normalized'] = (df_pv['Power Output (Watts)'] / 1000) / peak_power
         else:
@@ -136,43 +107,61 @@ def load_and_process_data(config):
         
         df_weather = pd.read_csv(os.path.join(config["pretrain_data_prefix"], weather_file), parse_dates=['time'])
         df_merged = pd.merge(df_pv[['Date', 'pv_normalized']], df_weather, left_on='Date', right_on='time', how='inner')
-        all_dfs.append(df_merged)
+        station_dfs.append(df_merged.set_index('Date').sort_index())
 
-    full_df = pd.concat(all_dfs, ignore_index=True).set_index('Date').sort_index()
+    # --- Feature Engineering and Global Scaler Fitting ---
+    master_df_for_scaling = pd.concat(station_dfs) # Concatenate temporarily ONLY to fit the scaler
 
-    full_df['hour'] = full_df.index.hour
-    full_df['month'] = full_df.index.month
-    full_df['hour_sin'] = np.sin(2 * np.pi * full_df['hour'] / 23.0)
-    full_df['hour_cos'] = np.cos(2 * np.pi * full_df['hour'] / 23.0)
+    # Feature engineering on the master dataframe
+    master_df_for_scaling['hour'] = master_df_for_scaling.index.hour
+    master_df_for_scaling['month'] = master_df_for_scaling.index.month
+    master_df_for_scaling['hour_sin'] = np.sin(2 * np.pi * master_df_for_scaling['hour'] / 23.0)
+    master_df_for_scaling['hour_cos'] = np.cos(2 * np.pi * master_df_for_scaling['hour'] / 23.0)
+    month_dummies = pd.get_dummies(master_df_for_scaling['month'], prefix='month').reindex(columns=[f'month_{i}' for i in range(1, 13)], fill_value=0)
+    master_df_for_scaling = pd.concat([master_df_for_scaling, month_dummies], axis=1)
+
+    feature_cols = ['pv_normalized', 'temperature_2m (°C)', 'relative_humidity_2m (%)', 
+                    'shortwave_radiation (W/m²)', 'hour_sin', 'hour_cos'] + list(month_dummies.columns)
     
-    month_dummies = pd.get_dummies(full_df['month'], prefix='month').reindex(columns=[f'month_{i}' for i in range(1, 13)], fill_value=0)
-    full_df = pd.concat([full_df, month_dummies], axis=1)
-
-    feature_cols = [
-        'pv_normalized', 'temperature_2m (°C)', 'relative_humidity_2m (%)', 
-        'shortwave_radiation (W/m²)', 'hour_sin', 'hour_cos'
-    ] + list(month_dummies.columns)
-    
-    final_df = full_df[feature_cols].copy().rename(columns={
-        'temperature_2m (°C)': 'temp',
-        'relative_humidity_2m (%)': 'humidity',
-        'shortwave_radiation (W/m²)': 'radiation'
+    final_df_for_scaling = master_df_for_scaling[feature_cols].copy().rename(columns={
+        'temperature_2m (°C)': 'temp', 'relative_humidity_2m (%)': 'humidity', 'shortwave_radiation (W/m²)': 'radiation'
     })
     
-    TARGET_COL = 'pv_normalized'
-    target_col_idx = final_df.columns.get_loc(TARGET_COL)
+    # Fit a single, global scaler on the training part of the combined data
+    split_idx_master = int(len(final_df_for_scaling) * config["train_split"])
+    scaler = StandardScaler().fit(final_df_for_scaling.iloc[:split_idx_master].values)
     
-    split_idx = int(len(final_df) * config["train_split"])
-    train_data = final_df.iloc[:split_idx].values
-    test_data = final_df.iloc[split_idx:].values
+    # --- Process Each Station Individually using the Global Scaler ---
+    processed_stations = []
+    for df in station_dfs:
+        # Apply same feature engineering
+        df['hour'] = df.index.hour
+        df['month'] = df.index.month
+        df['hour_sin'] = np.sin(2 * np.pi * df['hour'] / 23.0)
+        df['hour_cos'] = np.cos(2 * np.pi * df['hour'] / 23.0)
+        month_dummies = pd.get_dummies(df['month'], prefix='month').reindex(columns=[f'month_{i}' for i in range(1, 13)], fill_value=0)
+        df = pd.concat([df, month_dummies], axis=1)
 
-    scaler = StandardScaler()
-    train_scaled = scaler.fit_transform(train_data)
-    test_scaled = scaler.transform(test_data)
-    
-    print(f"Data processed. Total shape: {final_df.shape}. Number of features: {len(final_df.columns)}")
-    return train_scaled, test_scaled, scaler, target_col_idx, final_df.columns
+        final_df_station = df[feature_cols].copy().rename(columns={
+            'temperature_2m (°C)': 'temp', 'relative_humidity_2m (%)': 'humidity', 'shortwave_radiation (W/m²)': 'radiation'
+        })
+        
+        # Split and scale using the GLOBAL scaler
+        split_idx_station = int(len(final_df_station) * config["train_split"])
+        train_data = final_df_station.iloc[:split_idx_station].values
+        test_data = final_df_station.iloc[split_idx_station:].values
+        
+        train_scaled = scaler.transform(train_data)
+        test_scaled = scaler.transform(test_data)
+        
+        target_col_idx = final_df_station.columns.get_loc('pv_normalized')
+        processed_stations.append((train_scaled, test_scaled, target_col_idx))
 
+    print(f"Data processed for {len(station_dfs)} stations. Using a global scaler.")
+    return processed_stations, scaler, final_df_for_scaling.columns
+
+
+# --- REIMPLEMENTED TRAINING LOOP ---
 def train(config):
     wandb.init(project="PV Load Pred", entity="felkru-rwth-aachen-university", config=config)
     config = wandb.config
@@ -180,68 +169,77 @@ def train(config):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    train_data_scaled, test_data_scaled, scaler, target_col_idx, _ = load_and_process_data(config)
+    processed_stations, _, feature_names = load_and_process_data_per_station(config)
+    num_features = len(feature_names)
     
-    X_train, y_train_decoder_input = create_sequences(train_data_scaled, config.input_seq_len, config.output_seq_len)
-    X_test, y_test_decoder_input = create_sequences(test_data_scaled, config.input_seq_len, config.output_seq_len)
-
-    train_dataset = TimeseriesDataset(X_train, y_train_decoder_input)
-    test_dataset = TimeseriesDataset(X_test, y_test_decoder_input)
-    
-    train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=config.batch_size, shuffle=False)
-
-    num_features = train_data_scaled.shape[1]
-    model = PVTransformer(
-        num_features=num_features, d_model=config.d_model, nhead=config.nhead,
-        num_encoder_layers=config.num_encoder_layers, num_decoder_layers=config.num_decoder_layers,
-        dim_feedforward=config.dim_feedforward, dropout=config.dropout
-    ).to(device)
+    model = PVTransformer(num_features=num_features, d_model=config.d_model, nhead=config.nhead,
+                          num_encoder_layers=config.num_encoder_layers, num_decoder_layers=config.num_decoder_layers,
+                          dim_feedforward=config.dim_feedforward, dropout=config.dropout).to(device)
 
     wandb.watch(model, log='all', log_freq=100)
     criterion = nn.MSELoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=config.learning_rate)
     best_val_loss = float('inf')
 
-    print("Starting training...")
+    print("Starting iterative training across stations...")
     for epoch in range(config.epochs):
         model.train()
-        total_train_loss = 0
-        for src, tgt_input in train_loader:
-            src, tgt_input = src.to(device), tgt_input.to(device)
-            tgt_for_pred = tgt_input[:, :-1, :]
-            tgt_for_loss = tgt_input[:, 1:, target_col_idx].unsqueeze(-1)
+        total_epoch_train_loss = 0
 
-            optimizer.zero_grad()
-            prediction = model(src, tgt_for_pred)
+        # --- Inner loop for iterating through stations ---
+        for station_idx, (train_scaled, _, target_col_idx) in enumerate(processed_stations):
+            X_train, y_train = create_sequences(train_scaled, config.input_seq_len, config.output_seq_len)
+            train_dataset = TimeseriesDataset(X_train, y_train)
+            train_loader = DataLoader(train_dataset, batch_size=config.batch_size, shuffle=True)
             
-            loss = criterion(prediction, tgt_for_loss)
-            loss.backward()
-            optimizer.step()
-            total_train_loss += loss.item()
-        avg_train_loss = total_train_loss / len(train_loader)
+            station_train_loss = 0
+            for src, tgt in train_loader:
+                src, tgt = src.to(device), tgt.to(device)
+                tgt_for_pred = tgt[:, :-1, :]
+                tgt_for_loss = tgt[:, 1:, target_col_idx].unsqueeze(-1)
 
-        model.eval()
-        total_val_loss = 0
-        with torch.no_grad():
-            for src, tgt_input in test_loader:
-                src, tgt_input = src.to(device), tgt_input.to(device)
-                tgt_for_pred = tgt_input[:, :-1, :]
-                tgt_for_loss = tgt_input[:, 1:, target_col_idx].unsqueeze(-1)
-                
+                optimizer.zero_grad()
                 prediction = model(src, tgt_for_pred)
-                val_loss = criterion(prediction, tgt_for_loss)
-                total_val_loss += val_loss.item()
-        avg_val_loss = total_val_loss / len(test_loader)
+                loss = criterion(prediction, tgt_for_loss)
+                loss.backward()
+                optimizer.step()
+                station_train_loss += loss.item()
+            
+            avg_station_train_loss = station_train_loss / len(train_loader)
+            total_epoch_train_loss += avg_station_train_loss
+        
+        avg_epoch_train_loss = total_epoch_train_loss / len(processed_stations)
 
-        print(f"Epoch {epoch+1}/{config.epochs} | Train Loss: {avg_train_loss:.6f} | Val Loss: {avg_val_loss:.6f}")
-        wandb.log({"epoch": epoch, "train_loss": avg_train_loss, "validation_loss": avg_val_loss})
+        # --- Validation loop across all stations ---
+        model.eval()
+        total_epoch_val_loss = 0
+        with torch.no_grad():
+            for _, (_, test_scaled, target_col_idx) in enumerate(processed_stations):
+                X_test, y_test = create_sequences(test_scaled, config.input_seq_len, config.output_seq_len)
+                test_dataset = TimeseriesDataset(X_test, y_test)
+                test_loader = DataLoader(test_dataset, batch_size=config.batch_size, shuffle=False)
+                
+                station_val_loss = 0
+                for src, tgt in test_loader:
+                    src, tgt = src.to(device), tgt.to(device)
+                    tgt_for_pred = tgt[:, :-1, :]
+                    tgt_for_loss = tgt[:, 1:, target_col_idx].unsqueeze(-1)
+                    prediction = model(src, tgt_for_pred)
+                    station_val_loss += criterion(prediction, tgt_for_loss).item()
+                
+                total_epoch_val_loss += station_val_loss / len(test_loader)
+        
+        avg_epoch_val_loss = total_epoch_val_loss / len(processed_stations)
 
-        if avg_val_loss < best_val_loss:
-            best_val_loss = avg_val_loss
+        print(f"Epoch {epoch+1}/{config.epochs} | Avg Train Loss: {avg_epoch_train_loss:.6f} | Avg Val Loss: {avg_epoch_val_loss:.6f}")
+        wandb.log({"epoch": epoch, "avg_train_loss": avg_epoch_train_loss, "avg_validation_loss": avg_epoch_val_loss})
+
+        if avg_epoch_val_loss < best_val_loss:
+            best_val_loss = avg_epoch_val_loss
+            os.makedirs("checkpoints", exist_ok=True)
             model_path = "checkpoints/pretrained_model_best.pth"
             torch.save(model.state_dict(), model_path)
-            print(f"New best model saved to {model_path}")
+            print(f"New best model saved to {model_path} with val_loss: {best_val_loss:.6f}")
             artifact = wandb.Artifact('pv-transformer-pretrained', type='model')
             artifact.add_file(model_path)
             wandb.log_artifact(artifact)
@@ -250,9 +248,4 @@ def train(config):
     print("Pre-training finished.")
 
 if __name__ == '__main__':
-    if not os.path.exists(CONFIG["pretrain_data_prefix"]):
-        print(f"Error: Data directory '{CONFIG['pretrain_data_prefix']}' not found.")
-        print("Please create this directory and place your PV and weather CSV files inside.")
-        exit()
-
     train(CONFIG)
