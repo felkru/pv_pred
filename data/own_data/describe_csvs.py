@@ -1,7 +1,6 @@
 import pandas as pd 
 
 data = pd.read_csv('data/own_data/19_03_25-29_03_25.csv')
-# data = pd.read_csv('19_05_25-29_05_25.csv')
 
 print(
     '\ncsv description and info\n',
