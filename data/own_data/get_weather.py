@@ -157,8 +157,8 @@ if __name__ == "__main__":
 
     # --- Configuration ---
     # You can modify these default values or the script will prompt you.
-    start_date = "2025-03-19"
-    end_date = "2025-03-29"
+    start_date = "2025-05-19"
+    end_date = "2025-05-29"
     dwd_station_id = "15000"  # As in your example request
     output_filename = f"./data/own_data/weather_{dwd_station_id}_{start_date}-{end_date}.csv"
 
