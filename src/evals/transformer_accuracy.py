@@ -33,7 +33,7 @@ EVAL_CONFIG = {
     "dim_feedforward": PRETRAIN_CONFIG["dim_feedforward"],
     "dropout": PRETRAIN_CONFIG["dropout"],
     "batch_size": PRETRAIN_CONFIG["batch_size"], # Use same batch size for consistency
-    "model_path": "checkpoints/devout_wildflower_best.pth", # Path to your saved model
+    "model_path": "checkpoints/devout_wildflower/best.pth", # Path to your saved model
     "random_seed": 42, # Consistent seed for reproducibility
 }
 
@@ -133,15 +133,17 @@ def evaluate_model(config):
 
     # Plotting (Actual vs. Predicted)
     plt.figure(figsize=(12, 6))
-    plt.plot(actuals[:200], label='Actual PV Normalized') # Plot first 200 points for clarity
-    plt.plot(predictions[:200], label='Predicted PV Normalized', linestyle='--')
+    # plt.plot(actuals[:200], label='Actual PV Normalized')
+    # plt.plot(predictions[:200], label='Predicted PV Normalized', linestyle='--')
+    plt.plot(actuals[20500:50000], label='Actual PV Normalized')
+    plt.plot(predictions[20500:50000], label='Predicted PV Normalized', linestyle='--')
     plt.title('Actual vs. Predicted PV Production (First 200 hours of Test Set)')
     plt.xlabel('Time Step (hours)')
     plt.ylabel('Normalized PV Production')
     plt.legend()
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig("actual_vs_predicted_pretrain.png")
+    # plt.savefig("actual_vs_predicted_pretrain.png")
     plt.show()
 
     # Plotting (Residuals)
@@ -153,7 +155,7 @@ def evaluate_model(config):
     plt.ylabel('Frequency')
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig("residuals_distribution_pretrain.png")
+    # plt.savefig("residuals_distribution_pretrain.png")
     plt.show()
 
 

@@ -173,8 +173,6 @@ def load_and_process_data(config):
     print(f"Data processed. Total shape: {final_df.shape}. Number of features: {len(final_df.columns)}")
     return train_scaled, test_scaled, scaler, target_col_idx, final_df.columns
 
-# --- TRAINING LOOP (No changes needed here, but the model fix makes it work correctly) ---
-
 def train(config):
     wandb.init(project="PV Load Pred", entity="felkru-rwth-aachen-university", config=config)
     config = wandb.config
