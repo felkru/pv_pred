@@ -1,0 +1,5 @@
+--- Evaluation Results ---
+Mean Squared Error (MSE): 0.003693
+Root Mean Squared Error (RMSE): 0.060767
+Mean Absolute Error (MAE): 0.033143
+R-squared (R²): 0.9359
