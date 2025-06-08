@@ -15,8 +15,7 @@ wandb/
 # Virtual environments
 .venv
 
-# Model checkpoints
-*.pth
+# Images 
 *.png
 *.jpg
 *.jpeg

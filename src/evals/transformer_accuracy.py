@@ -22,7 +22,7 @@ EVAL_CONFIG = {
     # Inherit data sources and model architecture from pre-training config
     **PRETRAIN_CONFIG,
     # Specify path to the trained model
-    "model_path": "checkpoints/ruby-forest/best.pth",
+    "model_path": "checkpoints/pretrained_model_best.pth",
     "random_seed": 42,
 }
 
@@ -94,8 +94,8 @@ def evaluate_model(config):
 
         # --- Plotting for each station ---
         plt.figure(figsize=(15, 7))
-        plt.plot(actuals, label='Actual PV Normalized')
-        plt.plot(predictions, label='Predicted PV Normalized', linestyle='--', alpha=0.8)
+        plt.plot(actuals[:200], label='Actual PV Normalized')
+        plt.plot(predictions[:200], label='Predicted PV Normalized', linestyle='--', alpha=0.8)
         plt.title(f'Station {station_idx} - Actual vs. Predicted (Test Set)')
         plt.xlabel('Time Step (hours)')
         plt.ylabel('Normalized PV Production')

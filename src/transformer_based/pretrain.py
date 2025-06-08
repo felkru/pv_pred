@@ -45,7 +45,7 @@ CONFIG = {
     "dim_feedforward": 256,
     "dropout": 0.1,
     "epochs": 50,
-    "batch_size": 32,
+    "batch_size": 128,
     "learning_rate": 0.0001,
 }
 
