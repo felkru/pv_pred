@@ -1,0 +1,5 @@
+--- Overall Evaluation Results (Across All Stations) ---
+Mean Squared Error (MSE): 0.003048
+Root Mean Squared Error (RMSE): 0.055210
+Mean Absolute Error (MAE): 0.029322
+R-squared (R²): 0.9471

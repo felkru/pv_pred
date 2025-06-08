@@ -1,0 +1,26 @@
+{
+    "pretrain_data_prefix": "data/transfer_learning_data/",
+    "pv_files": [
+        "PV Plants Datasets_62030198.csv",
+        "PV Plants Datasets_62032213.csv",
+    ],
+    "weather_files": [
+        "weather_files/Braga_weather.csv",
+        "weather_files/Lisbon_weather.csv",
+    ],
+    "pv_peak_power_kwp": [
+        22_400 for _ in range(2)
+    ],
+    "train_split": 2/3,
+    "input_seq_len": 48,
+    "output_seq_len": 24,
+    "d_model": 64,
+    "nhead": 4,
+    "num_encoder_layers": 2,
+    "num_decoder_layers": 2,
+    "dim_feedforward": 256,
+    "dropout": 0.1,
+    "epochs": 50,
+    "batch_size": 32,
+    "learning_rate": 0.0001,
+}

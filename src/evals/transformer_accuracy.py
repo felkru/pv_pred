@@ -22,7 +22,7 @@ EVAL_CONFIG = {
     # Inherit data sources and model architecture from pre-training config
     **PRETRAIN_CONFIG,
     # Specify path to the trained model
-    "model_path": "checkpoints/devout_wildflower/best.pth",
+    "model_path": "checkpoints/ruby-forest/best.pth",
     "random_seed": 42,
 }
 
@@ -119,7 +119,6 @@ def evaluate_model(config):
     print(f"Root Mean Squared Error (RMSE): {rmse:.6f}")
     print(f"Mean Absolute Error (MAE): {mae:.6f}")
     print(f"R-squared (R²): {r2:.4f}")
-
 
 if __name__ == '__main__':
     evaluate_model(EVAL_CONFIG)

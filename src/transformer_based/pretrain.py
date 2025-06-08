@@ -10,9 +10,31 @@ from sklearn.preprocessing import StandardScaler
 # --- CONFIGURATION (Remains the same) ---
 CONFIG = {
     "pretrain_data_prefix": "data/transfer_learning_data/",
-    "pv_files": ["PV Plants Datasets_62030198.csv", "PV Plants Datasets_62032213.csv"],
-    "weather_files": ["weather_files/Braga_weather.csv", "weather_files/Lisbon_weather.csv"],
-    "pv_peak_power_kwp": [22_400, 22_400],
+    "pv_files": 
+        [
+            "PV Plants Datasets_62030198.csv",
+            "PV Plants Datasets_62032213.csv",
+            "PV Plants Datasets_73060645.csv",
+            "PV Plants Datasets_73061935.csv",
+            "PV Plants Datasets_84071566.csv",
+            "PV Plants Datasets_84071567.csv",
+            "PV Plants Datasets_84071568.csv",
+            "PV Plants Datasets_84071569.csv",
+            "PV Plants Datasets_84071570.csv",
+        ],
+    "weather_files": 
+        [
+            "weather_files/Braga_weather.csv", 
+            "weather_files/Lisbon_weather.csv",
+            "weather_files/Tavira_weather.csv",
+            "weather_files/Loule_weather.csv",
+            "weather_files/Faro_weather.csv",
+            "weather_files/Lisbon_weather.csv",
+            "weather_files/Setubal_weather.csv",
+            "weather_files/Lisbon_weather.csv",
+            "weather_files/Lisbon_weather.csv",
+        ],
+    "pv_peak_power_kwp": [22_400 for _ in range(9)],
     "train_split": 2/3,
     "input_seq_len": 48,
     "output_seq_len": 24,
