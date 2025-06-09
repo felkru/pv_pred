@@ -1,0 +1,42 @@
+command:
+- python
+- ${program}
+- ${args}
+method: bayes
+metric:
+  goal: maximize
+  name: validation_r2
+parameters:
+  batch_size:
+    values:
+    - 128
+    - 256
+  d_model:
+    values:
+    - 64
+    - 128
+    - 256
+  dim_feedforward:
+    values:
+    - 256
+    - 512
+    - 1024
+  dropout:
+    distribution: uniform
+    max: 0.3
+    min: 0.05
+  learning_rate:
+    distribution: uniform
+    max: 0.001
+    min: 1.0e-05
+  num_decoder_layers:
+    values:
+    - 2
+    - 3
+    - 4
+  num_encoder_layers:
+    values:
+    - 2
+    - 3
+    - 4
+program: src/transformer_based/pretrain.py

@@ -1,0 +1,2 @@
+#!/bin/bash
+python -m src.transformer_based.pretrain --learning_rate \${learning_rate} --d_model \${d_model} --dim_feedforward \${dim_feedforward} --num_encoder_layers \${num_encoder_layers} --num_decoder_layers \${num_decoder_layers} --dropout \${dropout} --batch_size \${batch_size}

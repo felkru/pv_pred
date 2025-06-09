@@ -1,0 +1,52 @@
+{
+  "os": "Linux-5.15.0-139-generic-x86_64-with-glibc2.39",
+  "python": "CPython 3.12.3",
+  "startedAt": "2025-06-09T16:16:29.903918Z",
+  "args": [
+    "--batch_size=256",
+    "--d_model=64",
+    "--dim_feedforward=512",
+    "--dropout=0.14960594487495826",
+    "--learning_rate=0.00070408684750718",
+    "--num_decoder_layers=2",
+    "--num_encoder_layers=4"
+  ],
+  "program": "/workspace/pv_pred/src/transformer_based/pretrain.py",
+  "codePath": "src/transformer_based/pretrain.py",
+  "git": {
+    "remote": "https://github.com/felkru/pv_pred.git",
+    "commit": "7c313197cf1975ed06010767bfbbfa30131861c2"
+  },
+  "email": "acc@felkru.com",
+  "root": "/workspace/pv_pred",
+  "host": "d53481d666e4",
+  "executable": "/venv/main/bin/python",
+  "codePathLocal": "src/transformer_based/pretrain.py",
+  "cpu_count": 6,
+  "cpu_count_logical": 6,
+  "gpu": "NVIDIA GeForce RTX 3060",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "25769803776",
+      "used": "2025840640"
+    }
+  },
+  "memory": {
+    "total": "16678289408"
+  },
+  "cpu": {
+    "count": 6,
+    "countLogical": 6
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA GeForce RTX 3060",
+      "memoryTotal": "12884901888",
+      "cudaCores": 3584,
+      "architecture": "Ampere",
+      "uuid": "GPU-2c19a8ce-7ddf-24dd-dc8d-09c7fbb1f080"
+    }
+  ],
+  "cudaVersion": "12.6"
+}
